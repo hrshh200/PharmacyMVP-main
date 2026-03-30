@@ -291,7 +291,7 @@ const Navbar = () => {
                                     className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold
                                 shadow-md transition-all duration-300 hover:shadow-lg hover:scale-105 active:scale-95">
                                     <UserPlus className="w-4 h-4 inline mr-2" />
-                                    Sign Up
+                                    SignUp
                                 </Link>
 
                             </div>

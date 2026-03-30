@@ -47,44 +47,44 @@ const Login = () => {
   };
 
   const submitHandler = async (e) => {
+  e.preventDefault();
+  setLoading(true);
 
-    e.preventDefault();
+  try {
+    let loginPayload = {
+      ...formData,
+      isDoctor: false,
+      userType,
+    };
 
-    setLoading(true);
-
-    try {
-      if (formData.email === 'admin@admin.com' && formData.password === 'admin') {
-        toast.success("Admin login successful!");
-        localStorage.setItem("medVisionToken", "admin-temp-token");
-        localStorage.setItem("medVisionUserType", 'admin');
-        navigate("/admindashboard");
-        return;
-      }
-
-      const loginEndpoint = `${baseURL}/login`;
-      const loginPayload = {
-        ...formData,
-        isDoctor: false,
-        userType,
-      };
-      const response = await axios.post(loginEndpoint, loginPayload);
-
-      toast.success("Login successful!");
-      localStorage.setItem("medVisionToken", response.data.token);
-      localStorage.setItem("medVisionUserType", userType);
-
-      if (userType === 'store') {
-        navigate("/storeDashboard");
-      } else {
-        navigate("/");
-      }
-    } catch (error) {
-      toast.error(error?.response?.data?.message || "Login failed. Please try again.");
-      console.error(error);
-    } finally {
-      setLoading(false);
+    // Handle admin login
+    if (formData.email === 'admin@admin.com' && formData.password === 'admin') {
+      loginPayload.userType = 'admin';
     }
-  };
+
+    const response = await axios.post(`${baseURL}/login`, loginPayload);
+
+    toast.success("Login successful!");
+
+    // Store REAL JWT from backend
+    localStorage.setItem("medVisionToken", response.data.token);
+    localStorage.setItem("medVisionUserType", loginPayload.userType);
+
+    if (loginPayload.userType === 'admin') {
+      navigate("/admindashboard");
+    } else if (loginPayload.userType === 'store') {
+      navigate("/storeDashboard");
+    } else {
+      navigate("/");
+    }
+
+  } catch (error) {
+    toast.error(error?.response?.data?.message || "Login failed. Please try again.");
+    console.error(error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <>

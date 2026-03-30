@@ -74,7 +74,12 @@ const Signup = () => {
           setLoading(false);
           return;
         }
-
+        else if (!formData.licenceNumber || !formData.gstNumber) {
+          toast.error("Please provide both licence number and GST number for store registration");
+          setLoading(false);
+          return;
+        }
+        
         const requestPayload = new FormData();
         requestPayload.append("storeName", formData.storeName);
         requestPayload.append("ownerName", formData.ownerName);
@@ -95,6 +100,7 @@ const Signup = () => {
 
         setShowStoreRequestModal(true);
       } catch (error) {
+        console.error("Store request submission failed:", error);
         toast.error(error?.response?.data?.message || "Failed to submit store request. Please try again.");
       } finally {
         setLoading(false);
@@ -110,7 +116,7 @@ const Signup = () => {
     }
 
     try {
-      const roleFlagKey = 'is' + 'Doctor';
+      const roleFlagKey = 'is' + 'Patient';
       const fullName = [formData.firstName, formData.middleName, formData.lastName]
         .map((value) => value.trim())
         .filter(Boolean)
@@ -405,7 +411,7 @@ const Signup = () => {
                       {selectedRole === "store" ? "Store Sign Up" : "Patient Sign Up"}
                     </span>
                     <h2 className="mt-4 text-3xl font-black text-slate-900 sm:text-4xl">
-                      Create your pharmacy profile
+                      Create your Pharmacy Profile
                     </h2>
                     <p className="mt-3 max-w-xl text-sm leading-7 text-slate-600 sm:text-base">
                       {selectedRole === "store"
@@ -577,7 +583,7 @@ const Signup = () => {
                         </label>
                         <input
                           type="file"
-                          accept="image/*,.pdf"
+                          // accept="image/*,.pdf"
                           onChange={(e) => setStoreLicenceFile(e.target.files?.[0] || null)}
                           required
                           className="block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 file:mr-4 file:rounded-xl file:border-0 file:bg-teal-100 file:px-3 file:py-2 file:text-teal-700"
@@ -645,6 +651,20 @@ const Signup = () => {
                               <option value="Delhi">Delhi</option>
                               <option value="Gujarat">Gujarat</option>
                               <option value="Tamil Nadu">Tamil Nadu</option>
+                              <option value="Uttar Pradesh">Uttar Pradesh</option>
+                              <option value="Rajasthan">Rajasthan</option>
+                              <option value="West Bengal">West Bengal</option>
+                              <option value="Andhra Pradesh">Andhra Pradesh</option>
+                              <option value="Punjab">Punjab</option>
+                              <option value="Haryana">Haryana</option>
+                              <option value="Bihar">Bihar</option>
+                              <option value="Chhattisgarh">Chhattisgarh</option>
+                              <option value="Odisha">Odisha</option>
+                              <option value="Kerala">Kerala</option>
+                              <option value="Jharkhand">Jharkhand</option>
+                              <option value="Assam">Assam</option>
+                              <option value="Himachal Pradesh">Himachal Pradesh</option>
+                              <option value="Uttarakhand">Uttarakhand</option>
                             </select>
                           </div>
                         </div>
@@ -789,6 +809,20 @@ const Signup = () => {
                               <option value="Delhi">Delhi</option>
                               <option value="Gujarat">Gujarat</option>
                               <option value="Tamil Nadu">Tamil Nadu</option>
+                              <option value="Uttar Pradesh">Uttar Pradesh</option>
+                              <option value="Rajasthan">Rajasthan</option>
+                              <option value="West Bengal">West Bengal</option>
+                              <option value="Andhra Pradesh">Andhra Pradesh</option>
+                              <option value="Punjab">Punjab</option>
+                              <option value="Haryana">Haryana</option>
+                              <option value="Bihar">Bihar</option>
+                              <option value="Chhattisgarh">Chhattisgarh</option>
+                              <option value="Odisha">Odisha</option>
+                              <option value="Kerala">Kerala</option>
+                              <option value="Jharkhand">Jharkhand</option>
+                              <option value="Assam">Assam</option>
+                              <option value="Himachal Pradesh">Himachal Pradesh</option>
+                              <option value="Uttarakhand">Uttarakhand</option>
                             </select>
                           </div>
                         </div>

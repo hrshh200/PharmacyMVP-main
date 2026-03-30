@@ -4,23 +4,42 @@ const Doctor = require("../models/doctor");
 const Admin = require("../models/admin")
 const Pharmacy = require("../models/pharmacy");
 const StoreApprovalRequest = require("../models/storeApprovalRequest");
+const Store = require("../models/store");
 const jwt = require("jsonwebtoken");
 const bcrypt = require('bcrypt');
 
 const verifyAdminRequest = (req) => {
-    const token = req.header('Authorization')?.split(' ')[1];
-    if (!token) {
-        return { ok: false, status: StatusCodes.UNAUTHORIZED, message: 'Admin token missing' };
-    }
-
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        if (decoded.role !== 'admin') {
-            return { ok: false, status: StatusCodes.FORBIDDEN, message: 'Admin access required' };
+        const authHeader = req.headers.authorization;
+
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            return {
+                ok: false,
+                status: 401,
+                message: "Admin token missing",
+            };
         }
-        return { ok: true, decoded };
+
+        const token = authHeader.split(" ")[1];
+
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+        if (decoded.role !== 'admin') {
+            return {
+                ok: false,
+                status: 403,
+                message: "Admin access required",
+            };
+        }
+
+        return { ok: true, user: decoded };
+
     } catch (error) {
-        return { ok: false, status: StatusCodes.UNAUTHORIZED, message: 'Invalid token' };
+        return {
+            ok: false,
+            status: 401,
+            message: "Invalid or expired token",
+        };
     }
 };
 
@@ -126,73 +145,63 @@ const signUp = async (req, res) => {
 const signIn = async (req, res) => {
     try {
         const { isDoctor = false, userType = 'patient', email, password } = req.body;
-        console.log(req.body);
 
-        // Check if email and password are provided
         if (!email || !password) {
-            return res.status(StatusCodes.BAD_REQUEST).json({
+            return res.status(400).json({
                 message: "Please enter email and password",
             });
         }
 
         let user;
         let role;
-        // Find the user by email
-        if (isDoctor !== true) {
-            user = await User.findOne({ email });
-            role = userType === 'store' ? 'Store' : 'User';
+
+        if (userType === 'admin') {
+            user = await Admin.findOne({ email });
+            role = 'admin';
+        }
+        else if (userType === 'store') {
+            user = await Store.findOne({ email });
+            role = 'Store';
         }
         else {
-            user = await Doctor.findOne({ email });
-            role = 'Doctor';
+            user = await User.findOne({ email });
+            role = 'User';
         }
 
         if (!user) {
-            return res.status(StatusCodes.BAD_REQUEST).json({
+            return res.status(400).json({
                 message: "User does not exist..!",
             });
         }
 
-        // Ensure user.hash_password exists
-        if (!user.hash_password) {
-            return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-                message: "User password is missing from the database.",
-            });
+        let isMatch;
+        if (userType === 'admin' || userType === 'store') {
+            isMatch = password === user.password;
+        } else {
+            isMatch = await bcrypt.compare(password, user.hash_password);
         }
 
-        // Log to debug if required
-        console.log('Plain Password:', password);
-        console.log('Hashed Password from DB:', user.hash_password);
-
-        // Compare the provided password with the hashed password in the database
-        const isMatch = await bcrypt.compare(password, user.hash_password);
-
         if (!isMatch) {
-            return res.status(StatusCodes.UNAUTHORIZED).json({
+            return res.status(401).json({
                 message: "Invalid email or password",
             });
         }
 
-        // If password matches, generate the JWT token
         const token = jwt.sign(
-            { _id: user._id, role: role },
+            { _id: user._id, role },
             process.env.JWT_SECRET,
             { expiresIn: "30d" }
         );
 
-        const { _id, name, email: userEmail } = user;
-
-        // Send the token and user info back to the client
-        return res.status(StatusCodes.OK).json({
+        return res.status(200).json({
             token,
-            user: { _id, name, email: userEmail },
+            user: { _id: user._id, name: user.name, email: user.email, role },
         });
 
     } catch (error) {
         console.error("Sign-in error: ", error);
-        return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+        return res.status(500).json({
             message: "An error occurred during sign-in",
-            error: error.message,
         });
     }
 };
@@ -1011,62 +1020,62 @@ const deletecartItems = async (req, res) => {
 };
 
 const doctorchatbotfetchdata = async (req, res) => {
-  const { doctorspecialist } = req.body;
-  console.log("Specialist:", doctorspecialist);
+    const { doctorspecialist } = req.body;
+    console.log("Specialist:", doctorspecialist);
 
-  try {
-    const doctors = await Doctor.find({ specialist: doctorspecialist });
+    try {
+        const doctors = await Doctor.find({ specialist: doctorspecialist });
 
-    return res.status(200).json({ doctors }); // ✅ send to frontend
-  } catch (error) {
-    console.error("Error fetching doctors:", error.message);
-    return res.status(500).json({ error: "Internal server error" });
-  }
+        return res.status(200).json({ doctors }); // ✅ send to frontend
+    } catch (error) {
+        console.error("Error fetching doctors:", error.message);
+        return res.status(500).json({ error: "Internal server error" });
+    }
 };
 
 const uploadPrescriptionFile = async (req, res) => {
-  try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) {
-      return res.status(401).json({ message: 'No token provided' });
+    try {
+        const token = req.headers.authorization?.split(' ')[1];
+        if (!token) {
+            return res.status(401).json({ message: 'No token provided' });
+        }
+
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const userId = decoded.userId;
+
+        if (!req.file) {
+            return res.status(400).json({ message: 'No file uploaded' });
+        }
+
+        // Here you would typically save the file to a storage service (like AWS S3, Cloudinary, etc.)
+        // For now, we'll simulate approval/rejection randomly
+        const isApproved = Math.random() > 0.5; // 50% chance of approval
+
+        // You could save the file path to the user's record
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Add prescription record to user
+        user.prescriptions = user.prescriptions || [];
+        user.prescriptions.push({
+            fileName: req.file.originalname,
+            filePath: req.file.path, // In real implementation, this would be the uploaded file URL
+            uploadedAt: new Date(),
+            status: isApproved ? 'approved' : 'rejected'
+        });
+
+        await user.save();
+
+        return res.status(200).json({
+            message: isApproved ? 'Prescription approved' : 'Prescription rejected',
+            status: isApproved ? 'approved' : 'rejected'
+        });
+    } catch (error) {
+        console.error('Error uploading prescription:', error);
+        return res.status(500).json({ message: 'Internal server error' });
     }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const userId = decoded.userId;
-
-    if (!req.file) {
-      return res.status(400).json({ message: 'No file uploaded' });
-    }
-
-    // Here you would typically save the file to a storage service (like AWS S3, Cloudinary, etc.)
-    // For now, we'll simulate approval/rejection randomly
-    const isApproved = Math.random() > 0.5; // 50% chance of approval
-
-    // You could save the file path to the user's record
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    // Add prescription record to user
-    user.prescriptions = user.prescriptions || [];
-    user.prescriptions.push({
-      fileName: req.file.originalname,
-      filePath: req.file.path, // In real implementation, this would be the uploaded file URL
-      uploadedAt: new Date(),
-      status: isApproved ? 'approved' : 'rejected'
-    });
-
-    await user.save();
-
-    return res.status(200).json({
-      message: isApproved ? 'Prescription approved' : 'Prescription rejected',
-      status: isApproved ? 'approved' : 'rejected'
-    });
-  } catch (error) {
-    console.error('Error uploading prescription:', error);
-    return res.status(500).json({ message: 'Internal server error' });
-  }
 };
 
 const createStoreApprovalRequest = async (req, res) => {
@@ -1182,6 +1191,36 @@ const reviewStoreApprovalRequest = async (req, res) => {
             return res.status(StatusCodes.NOT_FOUND).json({ message: 'Store approval request not found' });
         }
 
+        //Adding the new Store and deleting the existing approval request
+        const request = await StoreApprovalRequest.findById(id);
+        if (!request) {
+            return res.status(404).json({ message: 'Request not found' });
+        }
+
+        let createdStore = null;
+        if (status === 'approved') {
+            const plainPassword = Math.random().toString(36).slice(-8);
+            createdStore = await Store.create({
+                storeName: request.storeName,
+                ownerName: request.ownerName,
+                countryCode: request.countryCode,
+                mobile: request.mobile,
+                email: request.email,
+                password: plainPassword,
+                licenceNumber: request.licenceNumber,
+                gstNumber: request.gstNumber,
+                city: request.city,
+                address: request.address,
+                state: request.state,
+                pincode: request.pincode,
+                licenceDocument: request.licenceDocument,
+                status: 'Active',
+            });
+            await StoreApprovalRequest.findByIdAndDelete(id);
+        }
+        //Will use Twilio SendGrid or Nodemailer to send email notification to the store owner about the review outcome
+        // await sendStoreEmail(updatedRequest.email, status);
+
         return res.status(StatusCodes.OK).json({
             success: true,
             message: `Store request ${status}`,
@@ -1193,7 +1232,111 @@ const reviewStoreApprovalRequest = async (req, res) => {
     }
 };
 
+const getAllStores = async (req, res) => {
+    const adminAccess = verifyAdminRequest(req);
+    if (!adminAccess.ok) {
+        return res.status(adminAccess.status).json({ message: adminAccess.message });
+    }
+
+    try {
+        const stores = await Store.find().sort({ createdAt: -1 });
+
+        if (!stores || stores.length === 0) {
+            return res.status(StatusCodes.NOT_FOUND).json({
+                message: 'No stores found'
+            });
+        }
+        return res.status(StatusCodes.OK).json({
+            success: true,
+            count: stores.length,
+            stores,
+        });
+    } catch (error) {
+        console.error('Error fetching stores:', error);
+        return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+            message: 'Failed to fetch stores'
+        });
+    }
+};
+
+const updateStoreStatus = async (req, res) => {
+    const adminAccess = verifyAdminRequest(req);
+    if (!adminAccess.ok) {
+        return res.status(adminAccess.status).json({ message: adminAccess.message });
+    }
+
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+
+        if (!['Active', 'Inactive'].includes(status)) {
+            return res.status(StatusCodes.BAD_REQUEST).json({ message: 'Invalid store status' });
+        }
+
+        const updatedStore = await Store.findByIdAndUpdate(
+            id,
+            { status },
+            { new: true },
+        );
+
+        if (!updatedStore) {
+            return res.status(StatusCodes.NOT_FOUND).json({ message: 'Store not found' });
+        }
+
+        return res.status(StatusCodes.OK).json({
+            success: true,
+            message: `Store status updated to ${status}`,
+            store: updatedStore,
+        });
+    } catch (error) {
+        console.error('Error updating store status:', error);
+        return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+            message: 'Failed to update store status'
+        });
+    }
+};
+
+const addStore = async (req, res) => {  
+    try {   
+        const { storeName, ownerName, countryCode, mobile, email, password, licenceNumber, gstNumber, city, address, state, pincode, licenceDocument } = req.body;
+
+        if (!storeName || !ownerName || !mobile || !email || !licenceNumber || !city || !address || !state || !pincode) {
+            return res.status(StatusCodes.BAD_REQUEST).json({ message: 'Please provide all required store details' });
+        }
+
+        const existingStore = await Store.findOne({ email });
+        if (existingStore) {
+            return res.status(StatusCodes.BAD_REQUEST).json({ message: 'A store with this email already exists' });
+        }
+
+        const plainPassword = Math.random().toString(36).slice(-8); // Generate a random 8-character password
+        const newStore = new Store({
+            storeName,
+            ownerName,
+            countryCode: countryCode || '+91',
+            mobile,
+            email,
+            password: plainPassword,
+            licenceNumber,
+            gstNumber: gstNumber || '',
+            city,
+            address,
+            state,
+            pincode,
+            licenceDocument,
+            status: 'Active',
+        });
+
+        await newStore.save();
+
+        return res.status(StatusCodes.CREATED).json({ message: 'Store added successfully', store: newStore });
+    } catch (error) {
+        console.error('Error adding store:', error);
+        return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ message: 'Failed to add store' });
+    }   
+}
+
 module.exports = {
     signUp, signIn, fetchData, UpdateDoctorProfile, adminsignIn, AdminfetchData, doctorListAssigned, updatedoctorstatus
-    , fetchupdateddoctors, updateavailability, fetchavailableslots, confirmslot, getnames, linkgiven, uploadpres, confirmstatus, UpdatePatientProfile, fetchDoctors, fetchpharmacymedicines, updateorderedmedicines, updatecartquantity, addmedicinetodb, decreaseupdatecartquantity, deletemedicine, finalitems, finaladdress, finalpayment, deletecartItems, doctorchatbotfetchdata, uploadPrescriptionFile, createStoreApprovalRequest, getStoreApprovalRequests, reviewStoreApprovalRequest
+    , fetchupdateddoctors, updateavailability, fetchavailableslots, confirmslot, getnames, linkgiven, uploadpres, confirmstatus, UpdatePatientProfile, fetchDoctors, fetchpharmacymedicines, updateorderedmedicines, updatecartquantity, addmedicinetodb, decreaseupdatecartquantity, deletemedicine, finalitems, finaladdress, finalpayment, deletecartItems, doctorchatbotfetchdata, uploadPrescriptionFile, createStoreApprovalRequest, getStoreApprovalRequests, reviewStoreApprovalRequest, getAllStores, updateStoreStatus, addStore
 };

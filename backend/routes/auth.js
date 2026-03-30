@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const multer = require("multer");
-const { signUp, signIn, fetchData, AdminfetchData, UpdateDoctorProfile, adminsignIn, doctorListAssigned, updatedoctorstatus,fetchupdateddoctors, updateavailability, fetchavailableslots, confirmslot, getnames, linkgiven, uploadpres, confirmstatus, UpdatePatientProfile, fetchDoctors, fetchpharmacymedicines, updateorderedmedicines, updatecartquantity, addmedicinetodb, decreaseupdatecartquantity, deletemedicine, finalitems, finaladdress, finalpayment, deletecartItems, doctorchatbotfetchdata, uploadPrescriptionFile, createStoreApprovalRequest, getStoreApprovalRequests, reviewStoreApprovalRequest } = require("../controllers/auth");
+const { signUp, signIn, fetchData, AdminfetchData, UpdateDoctorProfile, adminsignIn, doctorListAssigned, updatedoctorstatus,fetchupdateddoctors, updateavailability, fetchavailableslots, confirmslot, getnames, linkgiven, uploadpres, confirmstatus, UpdatePatientProfile, fetchDoctors, fetchpharmacymedicines, updateorderedmedicines, updatecartquantity, addmedicinetodb, decreaseupdatecartquantity, deletemedicine, finalitems, finaladdress, finalpayment, deletecartItems, doctorchatbotfetchdata, uploadPrescriptionFile, createStoreApprovalRequest, getStoreApprovalRequests, reviewStoreApprovalRequest, getAllStores, updateStoreStatus,addStore } = require("../controllers/auth");
 
 // Configure multer for prescription uploads
 const prescriptionStorage = multer.diskStorage({
@@ -83,4 +83,7 @@ router.post("/doctorchatbotfetchdata", doctorchatbotfetchdata)
 router.post("/store-requests", storeRequestUpload.single('storeLicenceFile'), createStoreApprovalRequest);
 router.get("/store-requests", getStoreApprovalRequests);
 router.patch("/store-requests/:id/review", reviewStoreApprovalRequest);
+router.patch("/stores/:id/status", updateStoreStatus);
+router.get("/allstores", getAllStores);
+router.post("/addstores", addStore);
 module.exports = router;

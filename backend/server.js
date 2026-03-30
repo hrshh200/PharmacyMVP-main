@@ -75,6 +75,6 @@ const start = async () => {
 };
 
 app.use('/', (req, res) => {
-  res.send('Hello World!');
+  res.send('Not Found!');
 });
 start();

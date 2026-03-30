@@ -3,45 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Store, PlusSquare, ShieldCheck, BarChart3, ClipboardCheck, FileText } from 'lucide-react';
 import { baseURL } from '../main';
+import { use } from 'react';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
 
   const [activePanel, setActivePanel] = useState('stores');
-  const [stores, setStores] = useState([
-    {
-      id: 1,
-      storeName: 'Sunrise Pharmacy',
-      ownerName: 'Riya Mehta',
-      countryCode: '+91',
-      mobile: '9876543210',
-      email: 'sunrise@pharmacy.com',
-      licenceNumber: 'MH-PHARM-20458',
-      gstNumber: '27ABCDE1234F1Z8',
-      city: 'Mumbai',
-      address: '21 Tulip Street, Mumbai',
-      state: 'Maharashtra',
-      pincode: '400001',
-      licenceDocumentName: 'sunrise-licence.pdf',
-      status: 'Active',
-    },
-    {
-      id: 2,
-      storeName: 'GreenLeaf Pharmacy',
-      ownerName: 'Amit Patel',
-      countryCode: '+91',
-      mobile: '9123456789',
-      email: 'greenleaf@pharmacy.com',
-      licenceNumber: 'MH-PHARM-11873',
-      gstNumber: '27PQRSX5678K1Z6',
-      city: 'Pune',
-      address: '9 Lotus Avenue, Pune',
-      state: 'Maharashtra',
-      pincode: '411001',
-      licenceDocumentName: 'greenleaf-licence.pdf',
-      status: 'Inactive',
-    },
-  ]);
+  const [stores, setStores] = useState([]);
+
+  const [refreshCounter, setRefreshCounter] = useState(0);
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
   const [storeRequests, setStoreRequests] = useState([]);
   const [requestsLoading, setRequestsLoading] = useState(false);
@@ -87,6 +58,13 @@ const AdminDashboard = () => {
     });
   };
 
+  useEffect(() => {
+    if (!toast.show) return;
+    const id = setTimeout(() => setToast((t) => ({ ...t, show: false })), 3000);
+    return () => clearTimeout(id);
+  }, [toast.show]);
+
+  // Fetch store approval requests from backend
   const fetchStoreRequests = async () => {
     const token = localStorage.getItem('medVisionToken');
     if (!token) return;
@@ -105,10 +83,9 @@ const AdminDashboard = () => {
       setRequestsLoading(false);
     }
   };
-
   useEffect(() => {
     fetchStoreRequests();
-  }, []);
+  }, [refreshCounter]);
 
   const openStoreForm = () => {
     setEditingStoreId(null);
@@ -116,6 +93,7 @@ const AdminDashboard = () => {
     resetStoreForm();
   };
 
+  // Handle form input changes for store details
   const handleStoreChange = (e) => {
     const { name, value } = e.target;
     setStoreForm((prev) => ({ ...prev, [name]: value }));
@@ -130,46 +108,73 @@ const AdminDashboard = () => {
     }));
   };
 
-  const saveStore = (e) => {
-    e.preventDefault();
+  // Save new store or update existing store details
+  const saveStore = async (e) => {
+  e.preventDefault();
 
-    const required = [
-      storeForm.storeName,
-      storeForm.ownerName,
-      storeForm.mobile,
-      storeForm.email,
-      storeForm.licenceNumber,
-      storeForm.city,
-      storeForm.address,
-      storeForm.state,
-      storeForm.pincode,
-      storeForm.licenceDocumentName,
-    ];
+  const required = [
+    storeForm.storeName,
+    storeForm.ownerName,
+    storeForm.mobile,
+    storeForm.email,
+    storeForm.licenceNumber,
+    storeForm.city,
+    storeForm.address,
+    storeForm.state,
+    storeForm.pincode,
+    storeForm.licenceDocumentName,
+  ];
 
-    if (required.some((field) => !field)) return;
+  if (required.some((field) => !field)) {
+    setToast({
+      show: true,
+      message: "Please fill all required fields",
+      type: "error",
+    });
+    return;
+  }
 
-    const payload = {
-      ...storeForm,
-      licenceDocumentName:
-        storeForm.licenceDocumentFile?.name || storeForm.licenceDocumentName,
-      licenceDocumentFile: null,
-    };
-
-    if (editingStoreId) {
-      setStores((prev) =>
-        prev.map((store) =>
-          store.id === editingStoreId ? { ...store, ...payload } : store,
-        ),
-      );
-    } else {
-      setStores((prev) => [...prev, { id: prev.length + 1, ...payload }]);
-    }
-
-    setActivePanel('stores');
-    setEditingStoreId(null);
-    resetStoreForm();
+  const payload = {
+    ...storeForm,
+    licenceDocumentName:
+      storeForm.licenceDocumentFile?.name || storeForm.licenceDocumentName,
+    licenceDocumentFile: null,
   };
 
+  const token = localStorage.getItem('medVisionToken');
+  if (!token) return;
+
+  try {
+    const response = await axios.post(`${baseURL}/addstores`, payload, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (response.data) {
+      setToast({
+        show: true,
+        message: "Store Added Successfully",
+        type: "success",
+      });
+      
+      setActivePanel('stores');
+      setEditingStoreId(null);
+      resetStoreForm();
+    }
+
+  } catch (error) {
+    console.error('Failed to save store:', error);
+
+    setToast({
+      show: true,
+      message: error?.response?.data?.message || "Failed to add store",
+      type: "error",
+    });
+  }
+};
+
+  // Load store details into form for editing
   const editStore = (store) => {
     setEditingStoreId(store.id);
     setActivePanel('addStore');
@@ -179,19 +184,35 @@ const AdminDashboard = () => {
     });
   };
 
-  const toggleStoreStatus = (id) => {
-    setStores((prev) =>
-      prev.map((store) =>
-        store.id === id
-          ? {
-              ...store,
-              status: store.status === 'Active' ? 'Inactive' : 'Active',
-            }
-          : store,
-      ),
-    );
-  };
+  // Toggle store status between Active and Inactive
+  const toggleStoreStatus = async (store) => {
+    const token = localStorage.getItem('medVisionToken');
+    if (!token) return;
 
+    const newStatus = store.status === 'Active' ? 'Inactive' : 'Active';
+
+    try {
+      const res = await axios.patch(
+        `${baseURL}/stores/${store._id}/status`,
+        { status: newStatus },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setStores((prev) =>
+        prev.map((s) =>
+          s._id === store._id ? { ...s, status: newStatus } : s
+        )
+      );
+
+    } catch (error) {
+      console.error('Failed to toggle store status:', error.response?.data || error.message);
+    }
+  };
+  // Handle approval or rejection of store signup requests and will send the confirmation email to the Store user.
   const reviewStoreRequest = async (requestId, status) => {
     const token = localStorage.getItem('medVisionToken');
     if (!token) return;
@@ -204,20 +225,53 @@ const AdminDashboard = () => {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        },
+        }
       );
 
+      // optimistic update of local state
       setStoreRequests((prev) =>
         prev.map((request) =>
           request._id === requestId
             ? { ...request, status, reviewedAt: new Date().toISOString() }
-            : request,
-        ),
+            : request
+        )
       );
+
+      setToast({
+        show: true,
+        message: `Request ${status === 'approved' ? 'approved' : 'rejected'} successfully`,
+        type: 'success',
+      });
+      setRefreshCounter((c) => c + 1);
     } catch (error) {
       console.error('Failed to review store request:', error);
+      setToast({
+        show: true,
+        message: 'Failed to update request. Try again.',
+        type: 'error',
+      });
     }
   };
+
+  const getAllStores = async () => {
+    const token = localStorage.getItem('medVisionToken');
+    if (!token) return;
+
+    try {
+      const response = await axios.get(`${baseURL}/allstores`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setStores(response.data.stores);
+    } catch (error) {
+      console.error('Failed to fetch stores:', error);
+    }
+  };
+
+  useEffect(() => {
+    getAllStores();
+  }, [refreshCounter]);
 
   const sidebarItems = [
     { key: 'stores', icon: Store, text: 'Stores List' },
@@ -227,6 +281,13 @@ const AdminDashboard = () => {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      {toast.show && (
+        <div className="fixed right-6 top-6 z-50">
+          <div className={`rounded-xl px-4 py-3 text-sm font-medium shadow-lg ${toast.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'}`}>
+            {toast.message}
+          </div>
+        </div>
+      )}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-8 sm:pt-10">
         <div className="mb-6 overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-r from-slate-900 via-slate-800 to-blue-900 p-6 text-white shadow-sm sm:p-8">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
@@ -273,11 +334,10 @@ const AdminDashboard = () => {
                     key={item.key}
                     type="button"
                     onClick={() => setActivePanel(item.key)}
-                    className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-medium transition ${
-                      active
-                        ? 'bg-blue-600 text-white shadow-lg'
-                        : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
-                    }`}
+                    className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-medium transition ${active
+                      ? 'bg-blue-600 text-white shadow-lg'
+                      : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+                      }`}
                   >
                     <item.icon className={`w-5 h-5 ${active ? 'text-white' : 'text-blue-600'}`} />
                     <span>{item.text}</span>
@@ -359,7 +419,7 @@ const AdminDashboard = () => {
                               </button>
                               <button
                                 type="button"
-                                onClick={() => toggleStoreStatus(store.id)}
+                                onClick={() => toggleStoreStatus(store)}
                                 className="rounded-2xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition"
                               >
                                 {store.status === 'Active' ? 'Deactivate' : 'Activate'}
@@ -607,13 +667,12 @@ const AdminDashboard = () => {
                           </div>
 
                           <div className="flex flex-col gap-3 items-start sm:items-end">
-                            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                              request.status === 'approved'
-                                ? 'bg-emerald-100 text-emerald-700'
-                                : request.status === 'rejected'
-                                  ? 'bg-red-100 text-red-700'
-                                  : 'bg-amber-100 text-amber-700'
-                            }`}>
+                            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${request.status === 'approved'
+                              ? 'bg-emerald-100 text-emerald-700'
+                              : request.status === 'rejected'
+                                ? 'bg-red-100 text-red-700'
+                                : 'bg-amber-100 text-amber-700'
+                              }`}>
                               {request.status}
                             </span>
 

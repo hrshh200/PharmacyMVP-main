@@ -38,9 +38,6 @@ function Footer() {
                 {/* Brand header */}
                 <div className="flex flex-col items-center text-center mb-10">
                     <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-sky-500 to-teal-400 rounded-xl flex items-center justify-center shadow-lg shadow-sky-500/20">
-                            <Heart className="w-5 h-5 text-white fill-white" />
-                        </div>
                         <span className="text-xl sm:text-2xl font-extrabold tracking-wide bg-gradient-to-r from-white via-teal-100 to-sky-200 bg-clip-text text-transparent">
                             MedVision
                         </span>
@@ -104,7 +101,7 @@ function Footer() {
                             {[
                                 { label: "Login", to: "/login" },
                                 { label: "Create Account", to: "/signup" },
-                                { label: "Patient Dashboard", to: "/dashboard" },
+                                { label: "Patient Dashboard", to: "" },
                             ].map(({ label, to }) => (
                                 <li key={label}>
                                     <Link
@@ -160,9 +157,6 @@ function Footer() {
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
                     <p className="text-xs text-white/40">
                         © {new Date().getFullYear()} <span className="font-semibold text-white/60">MedVision</span> Private Limited. All rights reserved.
-                    </p>
-                    <p className="text-xs text-white/30 flex items-center gap-1.5">
-                        Made with <Heart className="w-3 h-3 text-rose-400 fill-rose-400" /> for better healthcare
                     </p>
                 </div>
 

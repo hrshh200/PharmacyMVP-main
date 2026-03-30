@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
+
 const doctorSchema = new mongoose.Schema({
   regNo: {
     type: Number,
