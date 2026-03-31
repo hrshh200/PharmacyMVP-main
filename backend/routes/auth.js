@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const multer = require("multer");
-const { signUp, signIn, fetchData, AdminfetchData, UpdateDoctorProfile, adminsignIn, doctorListAssigned, updatedoctorstatus,fetchupdateddoctors, updateavailability, fetchavailableslots, confirmslot, getnames, linkgiven, uploadpres, confirmstatus, UpdatePatientProfile, fetchDoctors, fetchpharmacymedicines, updateorderedmedicines, updatecartquantity, addmedicinetodb, decreaseupdatecartquantity, deletemedicine, finalitems, finaladdress, finalpayment, deletecartItems, doctorchatbotfetchdata, uploadPrescriptionFile, createStoreApprovalRequest, getStoreApprovalRequests, reviewStoreApprovalRequest, getAllStores, updateStoreStatus,addStore, getUserNotificationPreferences, updateUserNotificationPreferences, getVaccinationMaster, getUserVaccinations, upsertUserVaccination } = require("../controllers/auth");
+const { signUp, signIn, fetchData, AdminfetchData, UpdateDoctorProfile, adminsignIn, doctorListAssigned, updatedoctorstatus,fetchupdateddoctors, updateavailability, fetchavailableslots, confirmslot, getnames, linkgiven, uploadpres, confirmstatus, UpdatePatientProfile, fetchDoctors, fetchpharmacymedicines, updateorderedmedicines, updatecartquantity, addmedicinetodb, decreaseupdatecartquantity, deletemedicine, finalitems, finaladdress, finalpayment, deletecartItems, doctorchatbotfetchdata, uploadPrescriptionFile, createStoreApprovalRequest, getStoreApprovalRequests, reviewStoreApprovalRequest, getAllStores, updateStoreStatus,addStore, getUserNotificationPreferences, updateUserNotificationPreferences, getVaccinationMaster, getUserVaccinations, upsertUserVaccination, uploadPrescriptionRequest, getMyPrescriptionRequests, getStorePrescriptionRequests, reviewPrescriptionRequest } = require("../controllers/auth");
 const verifyToken  = require("../middleware/authMiddleware");  
 
 // Configure multer for prescription uploads
@@ -71,6 +71,10 @@ router.post("/getnames", getnames);
 router.post("/linkgiven", linkgiven);
 router.post("/confirmstatus", confirmstatus);
 router.post("/uploadpres", prescriptionUpload.single('prescription'), uploadpres);
+router.post("/prescriptions/upload", verifyToken(["User"]), prescriptionUpload.single('prescription'), uploadPrescriptionRequest);
+router.get("/prescriptions/me", verifyToken(["User"]), getMyPrescriptionRequests);
+router.get("/prescriptions/store", verifyToken(["Store"]), getStorePrescriptionRequests);
+router.patch("/prescriptions/:id/review", verifyToken(["Store"]), reviewPrescriptionRequest);
 // router.post("/fetchdoctors", fetchDoctors);
 router.post("/updateorderedmedicines", updateorderedmedicines);
 router.post("/updatecartquantity", updatecartquantity);

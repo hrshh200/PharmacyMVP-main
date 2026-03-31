@@ -21,6 +21,8 @@ const Dashboard = () => {
     const [vacSaving, setVacSaving] = useState({});
     const [vacLoading, setVacLoading] = useState(false);
     const [showProfile, setShowProfile] = useState(false);
+    const [prescriptionRequests, setPrescriptionRequests] = useState([]);
+    const [prescriptionsLoading, setPrescriptionsLoading] = useState(false);
     const [expandedDashboardOrder, setExpandedDashboardOrder] = useState(null);
     const [isEditingProfile, setIsEditingProfile] = useState(false);
     const [profileForm, setProfileForm] = useState({
@@ -236,11 +238,32 @@ const Dashboard = () => {
         return value === 'approved' || value === 'active';
     };
 
+    const fetchMyPrescriptionRequests = async () => {
+        const token = localStorage.getItem('medVisionToken');
+        if (!token) return;
+
+        try {
+            setPrescriptionsLoading(true);
+            const response = await axios.get(`${baseURL}/prescriptions/me`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            setPrescriptionRequests(response.data.prescriptions || []);
+        } catch (error) {
+            console.error('Error fetching prescriptions:', error.message);
+            setPrescriptionRequests([]);
+        } finally {
+            setPrescriptionsLoading(false);
+        }
+    };
+
     const getPrescriptionItems = (prescription) => {
+        const prescriptionKey = prescription._id || prescription.id || 'rx';
         if (Array.isArray(prescription?.medicines) && prescription.medicines.length > 0) {
             return prescription.medicines
                 .map((item, index) => ({
-                    id: `${prescription.id || 'rx'}-${index}`,
+                    id: `${prescriptionKey}-${index}`,
                     name: item.name || item.medicineName || `Medicine ${index + 1}`,
                     dosage: item.dosage || prescription.dosage || '-',
                     quantity: Math.max(1, Number(item.quantity || item.prescribedQuantity || 1)),
@@ -251,7 +274,7 @@ const Dashboard = () => {
 
         if (prescription?.medicineName) {
             return [{
-                id: `${prescription.id || 'rx'}-0`,
+                id: `${prescriptionKey}-0`,
                 name: prescription.medicineName,
                 dosage: prescription.dosage || '-',
                 quantity: Math.max(1, Number(prescription.quantity || 1)),
@@ -267,8 +290,8 @@ const Dashboard = () => {
         if (!draftItems.length) return;
 
         setRefillDraft({
-            prescriptionId: prescription.id,
-            prescriptionTitle: prescription.medicineName || 'Prescription Refill',
+            prescriptionId: prescription._id || prescription.id,
+            prescriptionTitle: prescription.medicineName || prescription.fileName || 'Prescription Refill',
             items: draftItems,
         });
         setIsRefillModalOpen(true);
@@ -430,110 +453,13 @@ const Dashboard = () => {
                 },
             });
             const userDataFromApi = response.data.userData;
-
-            // Add dummy prescriptions for demo
-            const dummyPrescriptions = [
-                {
-                    id: 1,
-                    medicineName: "Amoxicillin 500mg",
-                    dosage: "500mg",
-                    frequency: "3 times daily",
-                    duration: "7 days",
-                    doctorName: "Dr. Anjali Mehta",
-                    prescriber: "Pharmacy Team",
-                    date: "2024-03-15",
-                    status: "approved",
-                    medicines: [
-                        { name: 'Amoxicillin 500mg', dosage: '500mg', quantity: 2, price: 120 },
-                        { name: 'Probiotic Capsule', dosage: '250mg', quantity: 1, price: 180 },
-                    ],
-                },
-                {
-                    id: 2,
-                    medicineName: "Ibuprofen 200mg",
-                    dosage: "200mg",
-                    frequency: "As needed",
-                    duration: "30 days",
-                    doctorName: "Dr. Rohan Iyer",
-                    prescriber: "Pharmacy Team",
-                    date: "2024-03-10",
-                    status: "pending",
-                    medicines: [
-                        { name: 'Ibuprofen 200mg', dosage: '200mg', quantity: 1, price: 95 },
-                    ],
-                },
-                {
-                    id: 3,
-                    medicineName: "Lisinopril 10mg",
-                    dosage: "10mg",
-                    frequency: "Once daily",
-                    duration: "Ongoing",
-                    doctorName: "Dr. Priya Nair",
-                    prescriber: "Pharmacy Team",
-                    date: "2024-02-28",
-                    status: "rejected",
-                    medicines: [
-                        { name: 'Lisinopril 10mg', dosage: '10mg', quantity: 1, price: 150 },
-                    ],
-                }
-            ];
-
-            setUserData({
-                ...userDataFromApi,
-                prescriptions: dummyPrescriptions
-            });
+            setUserData(userDataFromApi);
         } catch (error) {
             console.error("Error fetching data:", error.message);
-            // Set dummy data even if API fails for demo
             setUserData({
                 name: "John Doe",
                 email: "john.doe@example.com",
                 mobile: "1234567890",
-                prescriptions: [
-                    {
-                        id: 1,
-                        medicineName: "Amoxicillin 500mg",
-                        dosage: "500mg",
-                        frequency: "3 times daily",
-                        duration: "7 days",
-                        doctorName: "Dr. Anjali Mehta",
-                        prescriber: "Pharmacy Team",
-                        date: "2024-03-15",
-                        status: "approved",
-                        medicines: [
-                            { name: 'Amoxicillin 500mg', dosage: '500mg', quantity: 2, price: 120 },
-                            { name: 'Probiotic Capsule', dosage: '250mg', quantity: 1, price: 180 },
-                        ],
-                    },
-                    {
-                        id: 2,
-                        medicineName: "Ibuprofen 200mg",
-                        dosage: "200mg",
-                        frequency: "As needed",
-                        duration: "30 days",
-                        doctorName: "Dr. Rohan Iyer",
-                        prescriber: "Pharmacy Team",
-                        date: "2024-03-10",
-                        status: "pending",
-                        medicines: [
-                            { name: 'Ibuprofen 200mg', dosage: '200mg', quantity: 1, price: 95 },
-                        ],
-                    },
-                    {
-                        id: 3,
-                        medicineName: "Lisinopril 10mg",
-                        dosage: "10mg",
-                        frequency: "Once daily",
-                        duration: "Ongoing",
-                        doctorName: "Dr. Priya Nair",
-                        prescriber: "Pharmacy Team",
-                        date: "2024-02-28",
-                        status: "rejected",
-                        medicines: [
-                            { name: 'Lisinopril 10mg', dosage: '10mg', quantity: 1, price: 150 },
-                        ],
-                    }
-                ]
             });
         } finally {
             setLoading(false);
@@ -543,6 +469,7 @@ const Dashboard = () => {
     useEffect(() => {
         fetchDataFromApi();
         fetchNotificationPreferences();
+        fetchMyPrescriptionRequests();
     }, []);
 
     useEffect(() => {
@@ -577,6 +504,7 @@ const Dashboard = () => {
         if (location.state?.openSection === 'prescriptions') {
             resetDashboardPanels();
             setShowPrescriptions(true);
+            fetchMyPrescriptionRequests();
             navigate(location.pathname, { replace: true, state: null });
         }
     }, [location, navigate]);
@@ -622,7 +550,7 @@ const Dashboard = () => {
 
     const sidebarItems = [
         { icon: Home,         text: "Dashboard",      onClick: () => { resetDashboardPanels(); setSidebarOpen(false); },                                                                     color: "text-cyan-600"   },
-        { icon: Pill,         text: "My Prescriptions",onClick: () => { const n = !showPrescriptions;  resetDashboardPanels(); setShowPrescriptions(n);  setSidebarOpen(false); },           color: "text-sky-600" },
+        { icon: Pill,         text: "My Prescriptions",onClick: () => { const n = !showPrescriptions;  resetDashboardPanels(); setShowPrescriptions(n); if (n) { fetchMyPrescriptionRequests(); } setSidebarOpen(false); },           color: "text-sky-600" },
         { icon: ShoppingBag,  text: "My Orders",       onClick: () => { const n = !showMyOrders;        resetDashboardPanels(); setShowMyOrders(n);        setSidebarOpen(false); },           color: "text-emerald-600" },
         { icon: Syringe,      text: "My Vaccinations", onClick: () => { const n = !showMyVaccinations;  resetDashboardPanels(); setShowMyVaccinations(n); if (!n) {} else { loadVaccinations(); } setSidebarOpen(false); },           color: "text-teal-600"   },
         { icon: UserCircle,   text: "Profile",         onClick: () => { const n = !showProfile;         resetDashboardPanels(); setShowProfile(n);         setSidebarOpen(false); },           color: "text-slate-600"},
@@ -634,10 +562,10 @@ const Dashboard = () => {
         {
             icon: Pill,
             label: "Prescriptions",
-            value: userData?.prescriptions?.length || 0,
+            value: prescriptionRequests.length,
             change: "Upload & manage prescriptions",
             color: "bg-gradient-to-br from-cyan-500 to-sky-600",
-            onClick: () => { resetDashboardPanels(); setShowPrescriptions(true); }
+            onClick: () => { resetDashboardPanels(); setShowPrescriptions(true); fetchMyPrescriptionRequests(); }
         },
         {
             icon: ShoppingBag,
@@ -889,7 +817,7 @@ ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}>
                                                     <p className="text-sm font-semibold text-sky-900">Active Prescriptions</p>
                                                     <p className="text-xs text-sky-700">Medicines currently visible in your account</p>
                                                 </div>
-                                                <span className="text-2xl font-bold text-sky-900">{userData?.prescriptions?.length || 0}</span>
+                                                <span className="text-2xl font-bold text-sky-900">{prescriptionRequests.length}</span>
                                             </div>
                                             <div className="flex items-center justify-between rounded-2xl bg-amber-50 px-4 py-3">
                                                 <div>
@@ -929,11 +857,13 @@ ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}>
                                     </button>
                                 </div>
 
-                                {userData?.prescriptions && userData.prescriptions.length > 0 ? (
+                                {prescriptionsLoading ? (
+                                    <div className="text-center py-12 text-slate-500">Loading prescriptions...</div>
+                                ) : prescriptionRequests.length > 0 ? (
                                     <div className="space-y-4">
-                                        {userData.prescriptions.map((prescription) => (
+                                        {prescriptionRequests.map((prescription) => (
                                             <div
-                                                key={prescription.id}
+                                                key={prescription._id}
                                                 className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow duration-300"
                                             >
                                                 <div className="flex items-start justify-between">
@@ -944,10 +874,10 @@ ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}>
                                                             </div>
                                                             <div>
                                                                 <h3 className="font-semibold text-gray-800 text-lg">
-                                                                    {prescription.medicineName}
+                                                                    {prescription.fileName || 'Prescription Upload'}
                                                                 </h3>
                                                                 <p className="text-purple-600 font-medium">
-                                                                    {prescription.dosage}
+                                                                    {(prescription.mimeType || '').toUpperCase() || 'Uploaded Document'}
                                                                 </p>
                                                             </div>
                                                         </div>
@@ -956,25 +886,25 @@ ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}>
                                                             <div className="flex items-center space-x-2">
                                                                 <Clock className="text-gray-400" size={16} />
                                                                 <span className="text-sm text-gray-600">
-                                                                    {prescription.frequency}
+                                                                    Review pending with store
                                                                 </span>
                                                             </div>
                                                             <div className="flex items-center space-x-2">
                                                                 <Calendar className="text-gray-400" size={16} />
                                                                 <span className="text-sm text-gray-600">
-                                                                    Duration: {prescription.duration}
+                                                                    Uploaded: {formatDashboardOrderDate(prescription.createdAt)}
                                                                 </span>
                                                             </div>
                                                             <div className="flex items-center space-x-2">
                                                                 <User className="text-gray-400" size={16} />
                                                                 <span className="text-sm text-gray-600">
-                                                                    Doctor: {prescription.doctorName || prescription.prescriber || 'Dr. Not Assigned'}
+                                                                    Store review workflow
                                                                 </span>
                                                             </div>
                                                             <div className="flex items-center space-x-2">
                                                                 <FileText className="text-gray-400" size={16} />
                                                                 <span className="text-sm text-gray-600">
-                                                                    {prescription.date}
+                                                                    {prescription.filePath}
                                                                 </span>
                                                             </div>
                                                         </div>
@@ -983,7 +913,7 @@ ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}>
                                                             <div className="mt-4 flex flex-wrap gap-2">
                                                                 {prescription.medicines.map((medicine, idx) => (
                                                                     <span
-                                                                        key={`${prescription.id}-${idx}`}
+                                                                        key={`${prescription._id}-${idx}`}
                                                                         className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs text-slate-700"
                                                                     >
                                                                         {medicine.name} x{medicine.quantity || 1}
@@ -992,7 +922,7 @@ ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}>
                                                             </div>
                                                         )}
 
-                                                        {isApprovedPrescription(prescription.status) && (
+                                                        {isApprovedPrescription(prescription.status) && Array.isArray(prescription.medicines) && prescription.medicines.length > 0 && (
                                                             <div className="mt-4">
                                                                 <button
                                                                     type="button"
@@ -1372,7 +1302,7 @@ ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}>
                                         <h3 className="text-lg font-semibold text-green-800 mb-4">Account Summary</h3>
                                         <div className="grid grid-cols-3 gap-4">
                                             <div className="text-center">
-                                                <p className="text-2xl font-bold text-green-600">{userData?.prescriptions?.length || 0}</p>
+                                                <p className="text-2xl font-bold text-green-600">{prescriptionRequests.length}</p>
                                                 <p className="text-sm text-green-700">Active Prescriptions</p>
                                             </div>
                                             <div className="text-center">
@@ -1657,6 +1587,7 @@ ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}>
             <PrescriptionDialog
                 isOpen={isPrescriptionDialogOpen}
                 onClose={() => setIsPrescriptionDialogOpen(false)}
+                onUploaded={fetchMyPrescriptionRequests}
             />
 
             {isRefillModalOpen && (

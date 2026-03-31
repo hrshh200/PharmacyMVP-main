@@ -1,8 +1,10 @@
 import React, { useRef, useState } from 'react';
+import axios from 'axios';
 import toast from 'react-hot-toast';
 import { AlertCircle, CalendarDays, CheckCircle, FileText, Pill, Stethoscope, Upload, UserRound, X } from 'lucide-react';
+import { baseURL } from '../main';
 
-const PrescriptionDialog = ({ isOpen, onClose }) => {
+const PrescriptionDialog = ({ isOpen, onClose, onUploaded }) => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
@@ -39,13 +41,28 @@ const PrescriptionDialog = ({ isOpen, onClose }) => {
     }
 
     setLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('prescription', selectedFile);
 
-    setTimeout(() => {
-      toast.success('You will be notified once your Prescription is Approved');
+      await axios.post(`${baseURL}/prescriptions/upload`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      toast.success('Prescription uploaded successfully. Awaiting store review.');
       setSelectedFile(null);
-      setLoading(false);
+      if (typeof onUploaded === 'function') {
+        onUploaded();
+      }
       onClose();
-    }, 2000);
+    } catch (error) {
+      console.error('Prescription upload failed:', error.message);
+      toast.error('Failed to upload prescription. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleClose = () => {

@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import Navbar from '../components/Navbar';
+import { baseURL } from '../main';
 import {
   Users,
   Package,
@@ -164,46 +166,10 @@ const StoreDashboard = () => {
   const reportAverageOrderValue = reportOrdersTotal ? reportTotalRevenue / reportOrdersTotal : 0;
   const reportUniqueCustomers = new Set(orders.map((order) => order.customer)).size;
   const reportCompletionRate = reportOrdersTotal ? Math.round((reportCompletedOrders / reportOrdersTotal) * 100) : 0;
-  const [prescriptions, setPrescriptions] = useState([
-    {
-      id: 'RX-1024',
-      patient: 'Neha Sharma',
-      medicines: 'Amoxicillin 500mg',
-      status: 'Pending',
-      date: 'Mar 24',
-      file: {
-        name: 'neha-prescription.jpg',
-        type: 'image/jpeg',
-        url: 'https://via.placeholder.com/600x400?text=Neha+Prescription',
-      },
-    },
-    {
-      id: 'RX-1027',
-      patient: 'Vikram Joshi',
-      medicines: 'Ibuprofen 200mg',
-      status: 'Approved',
-      date: 'Mar 25',
-      file: {
-        name: 'vikram-prescription.pdf',
-        type: 'application/pdf',
-        url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-      },
-    },
-    {
-      id: 'RX-1031',
-      patient: 'Priya Singh',
-      medicines: 'Lisinopril 10mg',
-      status: 'Pending',
-      date: 'Mar 26',
-      file: {
-        name: 'priya-prescription.png',
-        type: 'image/png',
-        url: 'https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&w=600&q=80',
-      },
-    },
-  ]);
-  const [selectedPrescriptionId, setSelectedPrescriptionId] = useState(prescriptions[0]?.id || null);
-  const selectedPrescription = prescriptions.find((item) => item.id === selectedPrescriptionId);
+  const [prescriptions, setPrescriptions] = useState([]);
+  const [selectedPrescriptionId, setSelectedPrescriptionId] = useState(null);
+  const [prescriptionsLoading, setPrescriptionsLoading] = useState(false);
+  const selectedPrescription = prescriptions.find((item) => item._id === selectedPrescriptionId);
   const [patientsCsvFile, setPatientsCsvFile] = useState(null);
   const [csvUploadMessage, setCsvUploadMessage] = useState('');
   const [revenueSummary] = useState({
@@ -220,6 +186,50 @@ const StoreDashboard = () => {
   const [selectedQueryId, setSelectedQueryId] = useState(queries[0]?.id || null);
   const [answerText, setAnswerText] = useState('');
   const selectedQuery = queries.find((item) => item.id === selectedQueryId);
+
+  const formatShortDate = (value) => {
+    if (!value) return 'N/A';
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return 'N/A';
+    return parsed.toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
+  };
+
+  const loadStorePrescriptions = async () => {
+    const token = localStorage.getItem('medVisionToken');
+    if (!token) return;
+
+    try {
+      setPrescriptionsLoading(true);
+      const response = await axios.get(`${baseURL}/prescriptions/store`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const rows = response.data.prescriptions || [];
+      setPrescriptions(rows);
+      setSelectedPrescriptionId((prev) => prev || rows[0]?._id || null);
+    } catch (error) {
+      console.error('Failed to load store prescriptions:', error.message);
+      setPrescriptions([]);
+      setSelectedPrescriptionId(null);
+    } finally {
+      setPrescriptionsLoading(false);
+    }
+  };
+
+  const updatePrescriptionStatus = async (id, status) => {
+    const token = localStorage.getItem('medVisionToken');
+    if (!token) return;
+
+    try {
+      await axios.patch(
+        `${baseURL}/prescriptions/${id}/review`,
+        { status: status.toLowerCase() },
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      await loadStorePrescriptions();
+    } catch (error) {
+      console.error('Failed to review prescription:', error.message);
+    }
+  };
 
   const sectionConfig = [
     { key: 'staff', label: 'Staff Members', icon: Users },
@@ -415,9 +425,11 @@ const StoreDashboard = () => {
     );
   };
 
-  const updatePrescriptionStatus = (id, status) => {
-    setPrescriptions((prev) => prev.map((item) => (item.id === id ? { ...item, status } : item)));
-  };
+  useEffect(() => {
+    if (selectedSection === 'prescription') {
+      loadStorePrescriptions();
+    }
+  }, [selectedSection]);
 
   const handleSubmitAnswer = (queryId) => {
     if (!answerText.trim()) return;
@@ -1072,13 +1084,22 @@ const StoreDashboard = () => {
                 </div>
                 <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
                   <div className="space-y-3">
-                    {prescriptions.map((prescription, index) => {
-                      const active = prescription.id === selectedPrescriptionId;
+                    {prescriptionsLoading ? (
+                      <div className="rounded-3xl border border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-500">
+                        Loading prescription requests...
+                      </div>
+                    ) : prescriptions.length === 0 ? (
+                      <div className="rounded-3xl border border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-500">
+                        No prescription requests yet.
+                      </div>
+                    ) : prescriptions.map((prescription, index) => {
+                      const active = prescription._id === selectedPrescriptionId;
+                      const normalizedStatus = String(prescription.status || 'pending').toLowerCase();
                       return (
                         <button
-                          key={prescription.id}
+                          key={prescription._id}
                           type="button"
-                          onClick={() => setSelectedPrescriptionId(prescription.id)}
+                          onClick={() => setSelectedPrescriptionId(prescription._id)}
                           className={`w-full rounded-3xl border p-4 text-left transition ${active ? 'border-yellow-500 bg-yellow-50 shadow-sm' : 'border-slate-200 bg-white hover:border-slate-300'}`}
                         >
                           <div className="flex items-center justify-between gap-3">
@@ -1087,16 +1108,16 @@ const StoreDashboard = () => {
                                 {index + 1}
                               </span>
                               <div>
-                                <p className="font-semibold text-slate-900">{prescription.patient}</p>
-                                <p className="text-sm text-slate-500">{prescription.medicines}</p>
+                                <p className="font-semibold text-slate-900">{prescription.userId?.name || 'Unknown User'}</p>
+                                <p className="text-sm text-slate-500">{prescription.fileName}</p>
                               </div>
                             </div>
                             <ChevronRight size={20} className={`transition ${active ? 'text-yellow-600' : 'text-slate-400'}`} />
                           </div>
                           <div className="mt-3 flex items-center justify-between text-sm text-slate-500">
-                            <span>{prescription.date}</span>
-                            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${prescription.status === 'Approved' ? 'bg-emerald-100 text-emerald-700' : prescription.status === 'Rejected' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
-                              {prescription.status}
+                            <span>{formatShortDate(prescription.createdAt)}</span>
+                            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${normalizedStatus === 'approved' ? 'bg-emerald-100 text-emerald-700' : normalizedStatus === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
+                              {normalizedStatus.charAt(0).toUpperCase() + normalizedStatus.slice(1)}
                             </span>
                           </div>
                         </button>
@@ -1109,41 +1130,41 @@ const StoreDashboard = () => {
                         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                           <div>
                             <p className="text-sm font-medium text-slate-500">Review Prescription</p>
-                            <h3 className="text-2xl font-semibold text-slate-900">{selectedPrescription.patient}</h3>
-                            <p className="text-sm text-slate-500">{selectedPrescription.medicines}</p>
+                            <h3 className="text-2xl font-semibold text-slate-900">{selectedPrescription.userId?.name || 'Unknown User'}</h3>
+                            <p className="text-sm text-slate-500">{selectedPrescription.userId?.email || 'No email available'}</p>
                           </div>
-                          <span className={`inline-flex rounded-full px-4 py-2 text-sm font-semibold ${selectedPrescription.status === 'Approved' ? 'bg-emerald-100 text-emerald-700' : selectedPrescription.status === 'Rejected' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
-                            {selectedPrescription.status}
+                          <span className={`inline-flex rounded-full px-4 py-2 text-sm font-semibold ${selectedPrescription.status === 'approved' ? 'bg-emerald-100 text-emerald-700' : selectedPrescription.status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
+                            {selectedPrescription.status?.charAt(0).toUpperCase() + selectedPrescription.status?.slice(1)}
                           </span>
                         </div>
-                        {selectedPrescription.file && (
+                        {selectedPrescription.filePath && (
                           <div className="rounded-3xl border border-slate-200 bg-white p-5">
                             <div className="flex items-center justify-between gap-3">
                               <div>
                                 <p className="text-sm font-medium text-slate-800">Attachment</p>
-                                <p className="text-sm text-slate-500">{selectedPrescription.file.name}</p>
+                                <p className="text-sm text-slate-500">{selectedPrescription.fileName}</p>
                               </div>
                             </div>
                             <div className="mt-4">
-                              {selectedPrescription.file.type.startsWith('image/') ? (
+                              {String(selectedPrescription.mimeType || '').startsWith('image/') ? (
                                 <img
-                                  src={selectedPrescription.file.url}
-                                  alt={selectedPrescription.file.name}
+                                  src={`${baseURL.replace('/api', '')}/${selectedPrescription.filePath.replace(/\\/g, '/')}`}
+                                  alt={selectedPrescription.fileName}
                                   className="w-full rounded-3xl border border-slate-200 object-contain"
                                 />
-                              ) : selectedPrescription.file.type === 'application/pdf' ? (
+                              ) : selectedPrescription.mimeType === 'application/pdf' ? (
                                 <div className="overflow-hidden rounded-3xl border border-slate-200">
-                                  <object data={selectedPrescription.file.url} type="application/pdf" width="100%" height="320">
+                                  <object data={`${baseURL.replace('/api', '')}/${selectedPrescription.filePath.replace(/\\/g, '/')}`} type="application/pdf" width="100%" height="320">
                                     <div className="p-4 text-sm text-slate-500">
                                       PDF preview not available.{' '}
-                                      <a href={selectedPrescription.file.url} target="_blank" rel="noreferrer" className="text-indigo-600 underline">
+                                      <a href={`${baseURL.replace('/api', '')}/${selectedPrescription.filePath.replace(/\\/g, '/')}`} target="_blank" rel="noreferrer" className="text-indigo-600 underline">
                                         Open document
                                       </a>
                                     </div>
                                   </object>
                                 </div>
                               ) : (
-                                <a href={selectedPrescription.file.url} target="_blank" rel="noreferrer" className="inline-flex text-sm font-medium text-indigo-600 hover:text-indigo-700">
+                                <a href={`${baseURL.replace('/api', '')}/${selectedPrescription.filePath.replace(/\\/g, '/')}`} target="_blank" rel="noreferrer" className="inline-flex text-sm font-medium text-indigo-600 hover:text-indigo-700">
                                   View attachment
                                 </a>
                               )}
@@ -1153,14 +1174,16 @@ const StoreDashboard = () => {
                         <div className="mt-6 flex flex-wrap gap-3">
                           <button
                             type="button"
-                            onClick={() => updatePrescriptionStatus(selectedPrescription.id, 'Approved')}
+                            onClick={() => updatePrescriptionStatus(selectedPrescription._id, 'Approved')}
+                            disabled={selectedPrescription.status === 'approved'}
                             className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-700 transition"
                           >
                             <CheckCircle2 size={18} /> Approve
                           </button>
                           <button
                             type="button"
-                            onClick={() => updatePrescriptionStatus(selectedPrescription.id, 'Rejected')}
+                            onClick={() => updatePrescriptionStatus(selectedPrescription._id, 'Rejected')}
+                            disabled={selectedPrescription.status === 'rejected'}
                             className="inline-flex items-center gap-2 rounded-2xl bg-red-600 px-5 py-3 text-sm font-semibold text-white hover:bg-red-700 transition"
                           >
                             <XCircle size={18} /> Reject

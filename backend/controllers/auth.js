@@ -8,6 +8,7 @@ const Store = require("../models/store");
 const UserNotification = require("../models/userNotification");
 const VaccinationMaster = require("../models/vaccinationMaster");
 const UserVaccination = require("../models/userVaccination");
+const PrescriptionRequest = require("../models/prescriptionRequest");
 const jwt = require("jsonwebtoken");
 const bcrypt = require('bcrypt');
 
@@ -1476,8 +1477,101 @@ const upsertUserVaccination = async (req, res) => {
   }
 };
 
+const uploadPrescriptionRequest = async (req, res) => {
+    try {
+        const userId = req.user?._id;
+        if (!userId) {
+            return res.status(StatusCodes.UNAUTHORIZED).json({ message: 'Unauthorized' });
+        }
+
+        if (!req.file) {
+            return res.status(StatusCodes.BAD_REQUEST).json({ message: 'Prescription file is required' });
+        }
+
+        const request = await PrescriptionRequest.create({
+            userId,
+            fileName: req.file.originalname,
+            filePath: req.file.path,
+            mimeType: req.file.mimetype,
+            status: 'pending',
+        });
+
+        return res.status(StatusCodes.CREATED).json({
+            message: 'Prescription uploaded successfully',
+            prescription: request,
+        });
+    } catch (error) {
+        console.error('uploadPrescriptionRequest error:', error);
+        return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ message: 'Failed to upload prescription' });
+    }
+};
+
+const getMyPrescriptionRequests = async (req, res) => {
+    try {
+        const userId = req.user?._id;
+        const prescriptions = await PrescriptionRequest.find({ userId })
+            .sort({ createdAt: -1 });
+
+        return res.status(StatusCodes.OK).json({ prescriptions });
+    } catch (error) {
+        console.error('getMyPrescriptionRequests error:', error);
+        return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ message: 'Failed to fetch prescriptions' });
+    }
+};
+
+const getStorePrescriptionRequests = async (req, res) => {
+    try {
+        const prescriptions = await PrescriptionRequest.find({})
+            .populate('userId', 'name email mobile')
+            .sort({ status: 1, createdAt: -1 });
+
+        return res.status(StatusCodes.OK).json({ prescriptions });
+    } catch (error) {
+        console.error('getStorePrescriptionRequests error:', error);
+        return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ message: 'Failed to fetch store prescription requests' });
+    }
+};
+
+const reviewPrescriptionRequest = async (req, res) => {
+    try {
+        const storeId = req.user?._id;
+        const { id } = req.params;
+        const { status, reviewNotes = '' } = req.body;
+
+        if (!['approved', 'rejected'].includes(status)) {
+            return res.status(StatusCodes.BAD_REQUEST).json({ message: 'Invalid status value' });
+        }
+
+        const updated = await PrescriptionRequest.findByIdAndUpdate(
+            id,
+            {
+                $set: {
+                    status,
+                    reviewNotes,
+                    reviewedByStoreId: storeId,
+                    reviewedAt: new Date(),
+                },
+            },
+            { new: true },
+        ).populate('userId', 'name email mobile');
+
+        if (!updated) {
+            return res.status(StatusCodes.NOT_FOUND).json({ message: 'Prescription request not found' });
+        }
+
+        return res.status(StatusCodes.OK).json({
+            message: `Prescription ${status}`,
+            prescription: updated,
+        });
+    } catch (error) {
+        console.error('reviewPrescriptionRequest error:', error);
+        return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ message: 'Failed to review prescription request' });
+    }
+};
+
 module.exports = {
     signUp, signIn, fetchData, UpdateDoctorProfile, adminsignIn, AdminfetchData, doctorListAssigned, updatedoctorstatus
     , fetchupdateddoctors, updateavailability, fetchavailableslots, confirmslot, getnames, linkgiven, uploadpres, confirmstatus, UpdatePatientProfile, fetchDoctors, fetchpharmacymedicines, updateorderedmedicines, updatecartquantity, addmedicinetodb, decreaseupdatecartquantity, deletemedicine, finalitems, finaladdress, finalpayment, deletecartItems, doctorchatbotfetchdata, uploadPrescriptionFile, createStoreApprovalRequest, getStoreApprovalRequests, reviewStoreApprovalRequest, getAllStores, updateStoreStatus, addStore, getUserNotificationPreferences, updateUserNotificationPreferences,
-    getVaccinationMaster, getUserVaccinations, upsertUserVaccination
+    getVaccinationMaster, getUserVaccinations, upsertUserVaccination,
+    uploadPrescriptionRequest, getMyPrescriptionRequests, getStorePrescriptionRequests, reviewPrescriptionRequest
 };
