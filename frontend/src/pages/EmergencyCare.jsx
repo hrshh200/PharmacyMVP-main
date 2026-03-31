@@ -1,92 +1,147 @@
 import React from 'react'
-import { AlertTriangle, Phone, Clock, MapPin, ChevronRight, Heart, Thermometer, Stethoscope, Pill } from 'lucide-react'
+import { AlertTriangle, Phone, Clock, MapPin, Heart, Thermometer, Stethoscope, Pill } from 'lucide-react'
+import CheckoutFooter from '../components/CheckoutFooter'
 
 export default function EmergencyCare() {
   const emergencyPrecautions = [
-    { icon: Heart, title: "Check for breathing", description: "Ensure the person is breathing. If not, start CPR immediately." },
-    { icon: Thermometer, title: "Control bleeding", description: "Apply direct pressure to any bleeding wounds." },
-    { icon: Stethoscope, title: "Don't move the injured", description: "Unless in immediate danger, don't move someone with potential spinal injuries." },
-    { icon: Pill, title: "Don't give anything by mouth", description: "Avoid giving food or drink to an injured person." },
+    { icon: Heart, title: 'Check breathing first', description: 'Look for chest movement. If not breathing, start CPR if trained.' },
+    { icon: Thermometer, title: 'Control heavy bleeding', description: 'Use firm direct pressure with clean cloth and keep pressure steady.' },
+    { icon: Stethoscope, title: 'Keep the body stable', description: 'Avoid moving neck or spine injuries unless immediate danger exists.' },
+    { icon: Pill, title: 'No food or medicine', description: 'Do not give anything by mouth until a clinician advises it.' },
   ]
 
-  const importantMarks = [
-    { title: "Chest Pain", description: "Could indicate a heart attack. Seek immediate medical attention." },
-    { title: "Difficulty Breathing", description: "May be a sign of severe allergic reaction or respiratory distress." },
-    { title: "Severe Bleeding", description: "Can lead to shock if not controlled quickly." },
-    { title: "Loss of Consciousness", description: "Could be a sign of various serious conditions." },
+  const warningSigns = [
+    { title: 'Chest Pain', description: 'Pressure, squeezing, or spreading pain to arm/jaw can be critical.' },
+    { title: 'Breathing Distress', description: 'Fast, shallow, noisy, or stopped breathing needs urgent response.' },
+    { title: 'Uncontrolled Bleeding', description: 'Continuous bleeding may lead to shock very quickly.' },
+    { title: 'Sudden Unresponsiveness', description: 'Collapse, fainting, or confusion can signal severe conditions.' },
+  ]
+
+  const quickSteps = [
+    'Call emergency services immediately.',
+    'Share exact location with landmark and floor details.',
+    'Follow dispatcher instructions without delay.',
+    'Prepare patient details: age, symptoms, known allergies.',
   ]
 
   return (
-    <div className="mt-[20vh] min-h-screen bg-blue-50">
-      <header className="bg-blue-600 text-white py-6">
-        <div className="container mx-auto px-4">
-          <h1 className="text-3xl font-bold">Emergency Care</h1>
-          <p className="mt-2">Quick guide for urgent medical situations</p>
-        </div>
-      </header>
+    <div
+      className="min-h-screen px-4 pb-14 sm:px-6 lg:px-8"
+      style={{
+        paddingTop: 'calc(var(--app-navbar-offset, 88px) + 2.5rem)',
+        background: 'linear-gradient(180deg, #fff7ed 0%, #fff1f2 30%, #f8fafc 100%)',
+      }}
+    >
+      <div className="mx-auto max-w-6xl">
+        <header className="relative overflow-hidden rounded-3xl border border-rose-100 bg-gradient-to-br from-rose-700 via-red-600 to-orange-500 p-6 text-white shadow-xl sm:p-8">
+          <div className="absolute -right-10 -top-10 h-44 w-44 rounded-full bg-white/15 blur-2xl" />
+          <div className="absolute -left-12 bottom-0 h-40 w-40 rounded-full bg-orange-200/20 blur-2xl" />
 
-      <main className="container mx-auto px-4 py-8">
-        <section className="mb-12">
-          <h2 className="text-2xl font-semibold text-blue-800 mb-4">Emergency Precautions</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="relative z-10 grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-rose-100">Rapid Response Guide</p>
+              <h1 className="mt-3 text-3xl font-black leading-tight sm:text-4xl">Emergency Care</h1>
+              <p className="mt-3 max-w-2xl text-sm text-rose-50 sm:text-base">
+                A quick-action reference for urgent situations while waiting for professional help.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <a
+                href="tel:108"
+                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/30 bg-white/20 px-4 py-3 text-sm font-semibold backdrop-blur transition hover:bg-white/30"
+              >
+                <Phone className="h-4 w-4" />
+                Call Emergency
+              </a>
+              <div className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/30 bg-white/10 px-4 py-3 text-sm font-semibold">
+                <Clock className="h-4 w-4" />
+                24 x 7 Support
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <main className="mt-8 space-y-8">
+          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {emergencyPrecautions.map((precaution, index) => (
-              <div key={index} className="bg-white rounded-lg shadow-md p-6 flex items-start">
-                <precaution.icon className="w-8 h-8 text-blue-500 mr-4 flex-shrink-0" />
-                <div>
-                  <h3 className="font-semibold text-lg text-blue-700 mb-2">{precaution.title}</h3>
-                  <p className="text-gray-600">{precaution.description}</p>
+              <article
+                key={index}
+                className="group rounded-3xl border border-rose-100 bg-white/90 p-5 shadow-sm transition duration-300 hover:-translate-y-0.5 hover:shadow-md"
+              >
+                <div className="mb-4 inline-flex rounded-2xl bg-rose-50 p-3 text-rose-600">
+                  <precaution.icon className="h-6 w-6" />
                 </div>
-              </div>
+                <h2 className="text-lg font-bold text-slate-900">{precaution.title}</h2>
+                <p className="mt-2 text-sm leading-6 text-slate-600">{precaution.description}</p>
+              </article>
             ))}
-          </div>
-        </section>
+          </section>
 
-        <section className="mb-12">
-          <h2 className="text-2xl font-semibold text-blue-800 mb-4">Important Marks of Emergency</h2>
-          <div className="bg-white rounded-lg shadow-md overflow-hidden">
-            {importantMarks.map((mark, index) => (
-              <div key={index} className="p-4 border-b border-blue-100 last:border-b-0">
-                <h3 className="font-semibold text-lg text-blue-700 mb-2 flex items-center">
-                  <AlertTriangle className="w-5 h-5 text-red-500 mr-2" />
-                  {mark.title}
-                </h3>
-                <p className="text-gray-600 ml-7">{mark.description}</p>
+          <section className="grid gap-6 lg:grid-cols-[1fr_1.1fr]">
+            <div className="rounded-3xl border border-amber-100 bg-gradient-to-br from-amber-50 to-white p-6 shadow-sm">
+              <h2 className="text-2xl font-extrabold text-slate-900">Immediate Action Steps</h2>
+              <p className="mt-2 text-sm text-slate-600">Follow these in order to reduce risk before emergency teams arrive.</p>
+              <ul className="mt-5 space-y-3">
+                {quickSteps.map((step, index) => (
+                  <li key={step} className="flex items-start gap-3 rounded-2xl border border-amber-100 bg-white px-4 py-3">
+                    <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-500 text-xs font-bold text-white">
+                      {index + 1}
+                    </span>
+                    <span className="text-sm font-medium text-slate-700">{step}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="rounded-3xl border border-rose-100 bg-white p-6 shadow-sm">
+              <h2 className="text-2xl font-extrabold text-slate-900">Critical Warning Signs</h2>
+              <div className="mt-5 space-y-3">
+                {warningSigns.map((mark) => (
+                  <div key={mark.title} className="rounded-2xl border border-rose-100 bg-rose-50/60 px-4 py-3">
+                    <h3 className="flex items-center gap-2 text-base font-bold text-rose-700">
+                      <AlertTriangle className="h-4 w-4" />
+                      {mark.title}
+                    </h3>
+                    <p className="mt-1 text-sm text-slate-600">{mark.description}</p>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </section>
-
-        <section>
-          <h2 className="text-2xl font-semibold text-blue-800 mb-4">Emergency Contacts</h2>
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center mb-4">
-              <Phone className="w-6 h-6 text-blue-500 mr-3" />
-              <span className="text-xl font-semibold text-blue-700">Emergency: 911</span>
             </div>
-            <div className="flex items-center mb-4">
-              <Clock className="w-6 h-6 text-blue-500 mr-3" />
-              <span className="text-gray-600">Available 24/7</span>
-            </div>
-            <div className="flex items-center">
-              <MapPin className="w-6 h-6 text-blue-500 mr-3" />
-              <span className="text-gray-600">Nearest Hospital: City General Hospital</span>
-            </div>
-          </div>
-        </section>
+          </section>
 
-        <div className="mt-8 text-center">
-          <a href="#" className="inline-flex items-center text-blue-600 hover:text-blue-800 transition-colors">
-            Learn more about emergency preparedness
-            <ChevronRight className="w-5 h-5 ml-1" />
-          </a>
-        </div>
-      </main>
+          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Emergency Line</p>
+                <p className="mt-2 flex items-center gap-2 text-lg font-extrabold text-slate-900">
+                  <Phone className="h-5 w-5 text-red-600" />
+                  108
+                </p>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Availability</p>
+                <p className="mt-2 flex items-center gap-2 text-lg font-extrabold text-slate-900">
+                  <Clock className="h-5 w-5 text-blue-600" />
+                  24 Hours
+                </p>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Closest Care Center</p>
+                <p className="mt-2 flex items-center gap-2 text-lg font-extrabold text-slate-900">
+                  <MapPin className="h-5 w-5 text-emerald-600" />
+                  City General
+                </p>
+              </div>
+            </div>
+          </section>
 
-      <footer className="bg-blue-100 py-6 mt-12">
-        <div className="container mx-auto px-4 text-center text-blue-600">
-          <p>Remember, in case of a medical emergency, always call your local emergency number immediately.</p>
-        </div>
-      </footer>
+        </main>
+
+      </div>
+      <div className="mt-10">
+        <CheckoutFooter />
+      </div>
     </div>
   )
 }
