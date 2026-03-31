@@ -7,9 +7,9 @@ import { Toaster } from 'react-hot-toast'
 import App from './App.jsx'
 import './index.css'
 
-// export const baseURL = 'https://pharmacymvp-main.onrender.com/api';
+export const baseURL = 'https://pharmacymvp-main.onrender.com/api';
 
-export const baseURL = 'http://localhost:5001/api';
+//export const baseURL = 'http://localhost:5001/api';
 
 //
 createRoot(document.getElementById('root')).render(
