@@ -5,6 +5,7 @@ const Admin = require("../models/admin")
 const Pharmacy = require("../models/pharmacy");
 const StoreApprovalRequest = require("../models/storeApprovalRequest");
 const Store = require("../models/store");
+const UserNotification = require("../models/userNotification");
 const jwt = require("jsonwebtoken");
 const bcrypt = require('bcrypt');
 
@@ -256,6 +257,76 @@ const fetchData = async (req, res) => {
     } catch (error) {
         res.status(500).json({
             message: "Error fetching data",
+        });
+    }
+};
+
+const getUserNotificationPreferences = async (req, res) => {
+    try {
+        const notificationPreferences = await UserNotification.findOneAndUpdate(
+            { userId: req.user._id },
+            { $setOnInsert: { userId: req.user._id } },
+            {
+                new: true,
+                upsert: true,
+                setDefaultsOnInsert: true,
+            }
+        );
+
+        return res.status(StatusCodes.OK).json({
+            success: true,
+            notificationPreferences,
+        });
+    } catch (error) {
+        console.error("Error fetching notification preferences:", error);
+        return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+            message: "Failed to fetch notification preferences",
+        });
+    }
+};
+
+const updateUserNotificationPreferences = async (req, res) => {
+    try {
+        const { isEmailNotificationOn, isSmsNotificationOn } = req.body;
+
+        const updatePayload = {};
+
+        if (typeof isEmailNotificationOn === 'boolean') {
+            updatePayload.isEmailNotificationOn = isEmailNotificationOn;
+        }
+
+        if (typeof isSmsNotificationOn === 'boolean') {
+            updatePayload.isSmsNotificationOn = isSmsNotificationOn;
+        }
+
+        if (!Object.keys(updatePayload).length) {
+            return res.status(StatusCodes.BAD_REQUEST).json({
+                message: "No valid notification preferences provided",
+            });
+        }
+
+        const notificationPreferences = await UserNotification.findOneAndUpdate(
+            { userId: req.user._id },
+            {
+                $set: updatePayload,
+                $setOnInsert: { userId: req.user._id },
+            },
+            {
+                new: true,
+                upsert: true,
+                setDefaultsOnInsert: true,
+            }
+        );
+
+        return res.status(StatusCodes.OK).json({
+            success: true,
+            message: "Notification preferences updated successfully",
+            notificationPreferences,
+        });
+    } catch (error) {
+        console.error("Error updating notification preferences:", error);
+        return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+            message: "Failed to update notification preferences",
         });
     }
 };
@@ -1321,5 +1392,5 @@ const addStore = async (req, res) => {
 
 module.exports = {
     signUp, signIn, fetchData, UpdateDoctorProfile, adminsignIn, AdminfetchData, doctorListAssigned, updatedoctorstatus
-    , fetchupdateddoctors, updateavailability, fetchavailableslots, confirmslot, getnames, linkgiven, uploadpres, confirmstatus, UpdatePatientProfile, fetchDoctors, fetchpharmacymedicines, updateorderedmedicines, updatecartquantity, addmedicinetodb, decreaseupdatecartquantity, deletemedicine, finalitems, finaladdress, finalpayment, deletecartItems, doctorchatbotfetchdata, uploadPrescriptionFile, createStoreApprovalRequest, getStoreApprovalRequests, reviewStoreApprovalRequest, getAllStores, updateStoreStatus, addStore
+    , fetchupdateddoctors, updateavailability, fetchavailableslots, confirmslot, getnames, linkgiven, uploadpres, confirmstatus, UpdatePatientProfile, fetchDoctors, fetchpharmacymedicines, updateorderedmedicines, updatecartquantity, addmedicinetodb, decreaseupdatecartquantity, deletemedicine, finalitems, finaladdress, finalpayment, deletecartItems, doctorchatbotfetchdata, uploadPrescriptionFile, createStoreApprovalRequest, getStoreApprovalRequests, reviewStoreApprovalRequest, getAllStores, updateStoreStatus, addStore, getUserNotificationPreferences, updateUserNotificationPreferences
 };

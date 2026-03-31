@@ -35,6 +35,13 @@ const Dashboard = () => {
     const [queryForm, setQueryForm] = useState({ subject: '', message: '' });
     const [queryErrors, setQueryErrors] = useState({});
     const [querySubmitted, setQuerySubmitted] = useState(false);
+    const [notifications, setNotifications] = useState({
+        sms: true,
+        email: true,
+    });
+    const [notificationSettingsLoading, setNotificationSettingsLoading] = useState(true);
+    const [notificationSettingsSaving, setNotificationSettingsSaving] = useState(false);
+    const [notificationSettingsMessage, setNotificationSettingsMessage] = useState(null);
     const [isRefillModalOpen, setIsRefillModalOpen] = useState(false);
     const [placingPrescriptionOrder, setPlacingPrescriptionOrder] = useState(false);
     const [refillDraft, setRefillDraft] = useState({
@@ -302,10 +309,85 @@ const Dashboard = () => {
     const navigate = useNavigate();
     const location = useLocation();
 
-    const [notifications, setNotifications] = useState({
-        sms: true,
-        email: true
-    });
+    const fetchNotificationPreferences = async () => {
+        const token = localStorage.getItem('medVisionToken');
+
+        if (!token) {
+            setNotificationSettingsLoading(false);
+            return;
+        }
+
+        try {
+            setNotificationSettingsLoading(true);
+            const response = await axios.get(`${baseURL}/user-notifications`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            const preferences = response.data.notificationPreferences;
+            setNotifications({
+                sms: preferences?.isSmsNotificationOn ?? true,
+                email: preferences?.isEmailNotificationOn ?? true,
+            });
+            setNotificationSettingsMessage(null);
+        } catch (error) {
+            console.error('Error fetching notification settings:', error.message);
+            setNotificationSettingsMessage({
+                type: 'error',
+                text: 'Could not load notification settings right now.',
+            });
+        } finally {
+            setNotificationSettingsLoading(false);
+        }
+    };
+
+    const handleNotificationToggle = (key, value) => {
+        setNotifications((prev) => ({ ...prev, [key]: value }));
+        setNotificationSettingsMessage(null);
+    };
+
+    const handleNotificationSave = async () => {
+        const token = localStorage.getItem('medVisionToken');
+
+        if (!token) {
+            setNotificationSettingsMessage({
+                type: 'error',
+                text: 'Please log in again to update notification settings.',
+            });
+            return;
+        }
+
+        try {
+            setNotificationSettingsSaving(true);
+            const response = await axios.put(`${baseURL}/user-notifications`, {
+                isSmsNotificationOn: notifications.sms,
+                isEmailNotificationOn: notifications.email,
+            }, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            const preferences = response.data.notificationPreferences;
+            setNotifications({
+                sms: preferences?.isSmsNotificationOn ?? notifications.sms,
+                email: preferences?.isEmailNotificationOn ?? notifications.email,
+            });
+            setNotificationSettingsMessage({
+                type: 'success',
+                text: 'Notification settings updated successfully.',
+            });
+        } catch (error) {
+            console.error('Error saving notification settings:', error.message);
+            setNotificationSettingsMessage({
+                type: 'error',
+                text: 'Failed to save notification settings. Please try again.',
+            });
+        } finally {
+            setNotificationSettingsSaving(false);
+        }
+    };
 
     const fetchDataFromApi = async () => {
         try {
@@ -429,6 +511,7 @@ const Dashboard = () => {
 
     useEffect(() => {
         fetchDataFromApi();
+        fetchNotificationPreferences();
     }, []);
 
     useEffect(() => {
@@ -939,6 +1022,15 @@ ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}>
                                 </div>
 
                                 <div className="space-y-6">
+                                    {notificationSettingsMessage && (
+                                        <div className={`rounded-xl border px-4 py-3 text-sm ${notificationSettingsMessage.type === 'success'
+                                            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                                            : 'border-rose-200 bg-rose-50 text-rose-700'
+                                            }`}>
+                                            {notificationSettingsMessage.text}
+                                        </div>
+                                    )}
+
                                     <div className="flex items-center justify-between p-4 border border-gray-200 rounded-xl">
                                         <div className="flex items-center space-x-3">
                                             <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -954,7 +1046,8 @@ ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}>
                                                 type="checkbox"
                                                 className="sr-only peer"
                                                 checked={notifications.sms}
-                                                onChange={(e) => setNotifications(prev => ({ ...prev, sms: e.target.checked }))}
+                                                onChange={(e) => handleNotificationToggle('sms', e.target.checked)}
+                                                disabled={notificationSettingsLoading || notificationSettingsSaving}
                                             />
                                             <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-cyan-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-600"></div>
                                         </label>
@@ -975,7 +1068,8 @@ ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}>
                                                 type="checkbox"
                                                 className="sr-only peer"
                                                 checked={notifications.email}
-                                                onChange={(e) => setNotifications(prev => ({ ...prev, email: e.target.checked }))}
+                                                onChange={(e) => handleNotificationToggle('email', e.target.checked)}
+                                                disabled={notificationSettingsLoading || notificationSettingsSaving}
                                             />
                                             <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-cyan-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-600"></div>
                                         </label>
@@ -993,12 +1087,15 @@ ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}>
 
                                     <div className="flex justify-end">
                                         <button
-                                            onClick={() => {
-                                                alert(`Notification preferences saved!\nSMS: ${notifications.sms ? 'Enabled' : 'Disabled'}\nEmail: ${notifications.email ? 'Enabled' : 'Disabled'}`);
-                                            }}
-                                            className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-6 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 transition"
+                                            onClick={handleNotificationSave}
+                                            disabled={notificationSettingsLoading || notificationSettingsSaving}
+                                            className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-6 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 transition disabled:cursor-not-allowed disabled:opacity-60"
                                         >
-                                            Save Preferences
+                                            {notificationSettingsLoading
+                                                ? 'Loading Preferences...'
+                                                : notificationSettingsSaving
+                                                    ? 'Saving...'
+                                                    : 'Save Preferences'}
                                         </button>
                                     </div>
                                 </div>

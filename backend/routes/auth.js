@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const multer = require("multer");
-const { signUp, signIn, fetchData, AdminfetchData, UpdateDoctorProfile, adminsignIn, doctorListAssigned, updatedoctorstatus,fetchupdateddoctors, updateavailability, fetchavailableslots, confirmslot, getnames, linkgiven, uploadpres, confirmstatus, UpdatePatientProfile, fetchDoctors, fetchpharmacymedicines, updateorderedmedicines, updatecartquantity, addmedicinetodb, decreaseupdatecartquantity, deletemedicine, finalitems, finaladdress, finalpayment, deletecartItems, doctorchatbotfetchdata, uploadPrescriptionFile, createStoreApprovalRequest, getStoreApprovalRequests, reviewStoreApprovalRequest, getAllStores, updateStoreStatus,addStore } = require("../controllers/auth");
+const { signUp, signIn, fetchData, AdminfetchData, UpdateDoctorProfile, adminsignIn, doctorListAssigned, updatedoctorstatus,fetchupdateddoctors, updateavailability, fetchavailableslots, confirmslot, getnames, linkgiven, uploadpres, confirmstatus, UpdatePatientProfile, fetchDoctors, fetchpharmacymedicines, updateorderedmedicines, updatecartquantity, addmedicinetodb, decreaseupdatecartquantity, deletemedicine, finalitems, finaladdress, finalpayment, deletecartItems, doctorchatbotfetchdata, uploadPrescriptionFile, createStoreApprovalRequest, getStoreApprovalRequests, reviewStoreApprovalRequest, getAllStores, updateStoreStatus,addStore, getUserNotificationPreferences, updateUserNotificationPreferences } = require("../controllers/auth");
 const verifyToken  = require("../middleware/authMiddleware");  
 
 // Configure multer for prescription uploads
@@ -59,6 +59,8 @@ router.post("/patientprofile", UpdatePatientProfile);
 router.post("/updateslots", updateavailability);
 // router.post("/admin", adminsignIn);
 router.get("/fetchdata", verifyToken(["User", "Store", "Doctor"]), fetchData);
+router.get("/user-notifications", verifyToken(["User"]), getUserNotificationPreferences);
+router.put("/user-notifications", verifyToken(["User"]), updateUserNotificationPreferences);
 router.post("/fetchslots", fetchavailableslots);
 // router.get("/doctors", doctorListAssigned)
 // router.get("/alldoctors", fetchupdateddoctors);
