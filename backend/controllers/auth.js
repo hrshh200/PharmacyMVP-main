@@ -233,49 +233,32 @@ const UpdateDoctorProfile = async (req, res) => {
 
 
 const fetchData = async (req, res) => {
-
     try {
-        // Get token from the Authorization header
-        const JWT_SECRET = process.env.JWT_SECRET;
-        const token = req.header('Authorization')?.split(' ')[1];
-        //  console.log(token);
-        if (!token) {
-            return res.status(StatusCodes.UNAUTHORIZED).json({
-                message: "Access token is missing or invalid",
-            });
-        }
+        const decoded = req.user;
 
-        // Verify and decode the token
-        const decoded = jwt.verify(token, JWT_SECRET);
-        // console.log("hhh", decoded);
-
-        // Check if the user is a doctor or not based on their role
         const userModel = decoded.role === 'Doctor' ? Doctor : User;
 
-        // Find user or doctor by their ID
-        const userData = await userModel.findById(decoded._id).select('-hash_password'); // Exclude sensitive fields
+        const userData = await userModel
+            .findById(decoded._id)
+            .select('-hash_password');
 
         if (!userData) {
-            return res.status(StatusCodes.NOT_FOUND).json({
+            return res.status(404).json({
                 message: "User not found",
             });
         }
 
-        // Respond with user or doctor data
-        res.status(StatusCodes.OK).json({
+        res.status(200).json({
             success: true,
             userData,
         });
 
     } catch (error) {
-        console.error("Error fetching data:", error);
-        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-            message: "An error occurred while fetching data",
-            error: error.message,
+        res.status(500).json({
+            message: "Error fetching data",
         });
     }
 };
-
 const adminsignIn = async (req, res) => {
     try {
         const { email, password } = req.body;

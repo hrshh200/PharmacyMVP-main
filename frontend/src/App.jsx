@@ -1,5 +1,7 @@
 import { Route, Routes } from 'react-router-dom'
 import './App.css'
+import ProtectedRoute from './components/Route/ProtectedRoute';
+import PublicRoute from "./components/Route//PublicRoute";
 
 //pages
 import Layout from './pages/Layout';
@@ -8,7 +10,6 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import OnlinePharmacy from './pages/OnlinePharmacy';
 import Dashboard from './pages/Dashboard';
-import AdminLogin from './components/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
 import DiseasePrediction from './pages/DiseasePrediction';
 import HeartPrediction from './pages/HeartPrediction';
@@ -30,6 +31,7 @@ import MyVaccination from './pages/MyVaccinations';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsAndConditions from './pages/TermsAndConditions';
 import ContactUs from './pages/ContactUs';
+import NotFound from './pages/NotFound';
 
 function App() {
 
@@ -38,15 +40,50 @@ function App() {
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<Home />} />
-          <Route path="login" element={<Login />} />
-          <Route path="signup" element={<Signup />} />
+          <Route
+            path="login"
+            element={
+              <PublicRoute>
+                <Login />
+              </PublicRoute>
+            }
+          />
+
+          <Route
+            path="signup"
+            element={
+              <PublicRoute>
+                <Signup />
+              </PublicRoute>
+            }
+          />
           <Route path='disease' element={<DiseasePrediction />} />
-          <Route path='dashboard' element={<Dashboard />} />
-          <Route path='admindashboard' element={<AdminDashboard />} />
+          <Route
+            path="dashboard"
+            element={
+              <ProtectedRoute allowedRoles={["User"]}>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="admindashboard"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
           <Route path='onlinepharmacy' element={<OnlinePharmacy />} />
           <Route path='patientProfile' element={<PatientProfile />} />
-          <Route path='storeDashboard' element={<StoreDashboard />} />
-          <Route path='admin' element={<AdminLogin />} />
+          <Route
+            path="storeDashboard"
+            element={
+              <ProtectedRoute allowedRoles={["Store"]}>
+                <StoreDashboard />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/heart-disease" element={<HeartPrediction />} />
           <Route path="/emergencyguidelines" element={<EmergencyCare />} />
           <Route path="/addmedicine" element={<AddMedicine />} />
@@ -64,6 +101,7 @@ function App() {
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
           <Route path="/contact-us" element={<ContactUs />} />
+          <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
     </>

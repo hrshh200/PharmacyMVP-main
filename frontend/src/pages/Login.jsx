@@ -69,6 +69,7 @@ const Login = () => {
     // Store REAL JWT from backend
     localStorage.setItem("medVisionToken", response.data.token);
     localStorage.setItem("medVisionUserType", loginPayload.userType);
+    localStorage.setItem("user", JSON.stringify(response.data.user));
 
     if (loginPayload.userType === 'admin') {
       navigate("/admindashboard");

@@ -115,6 +115,18 @@ const Navbar = () => {
         };
     }, [menuOpen, isLoggedIn, adminData, userType]);
 
+    useEffect(() => {
+    const token = localStorage.getItem('medVisionToken');
+
+    if (token) {
+        setIsLoggedIn(true);
+        fetchDataFromApi();
+        fetchadminDataFromApi();
+    } else {
+        setIsLoggedIn(false);
+    }
+}, [location.pathname]); 
+
     const handleLogout = () => {
         localStorage.removeItem('medVisionToken');
         localStorage.removeItem('userData');
